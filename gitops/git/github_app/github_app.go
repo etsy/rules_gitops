@@ -111,8 +111,7 @@ func createPR(ctx context.Context, gh *github.Client, baseBranch string, commitB
 	newPR := &github.NewPullRequest{
 		Title:               &prSubject,
 		Head:                &commitBranch,
-		HeadRepo:            &baseBranch,
-		Base:                &baseBranch,
+		Base:                &baseBranch, // This is the target branch
 		Body:                &prDescription,
 		MaintainerCanModify: github.Bool(true),
 	}
