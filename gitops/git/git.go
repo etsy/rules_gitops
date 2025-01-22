@@ -162,3 +162,33 @@ func (r *Repo) Push(branches []string) {
 	args := append([]string{"push", "origin", "-f", "--set-upstream"}, branches...)
 	exec.Mustex(r.Dir, "git", args...)
 }
+
+func (r *Repo) GetModifiedFiles() ([]string, error) {
+	cmd := oe.Command("git", "status", "--porcelain")
+	cmd.Dir = r.Dir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get modified files: %w", err)
+	}
+
+	if len(output) == 0 {
+		return []string{}, nil
+	}
+
+	// Split output into lines and process each line
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	files := make([]string, 0, len(lines))
+
+	for _, line := range lines {
+		if len(line) > 3 {
+			// git status --porcelain output format is "XY filename"
+			// where X and Y are status codes
+			// We just want the filename part
+			file := strings.TrimSpace(line[2:])
+			files = append(files, file)
+			log.Printf("Modified file: %s", file)
+		}
+	}
+
+	return files, nil
+}
