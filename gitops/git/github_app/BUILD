@@ -8,6 +8,5 @@ go_library(
     deps = [
         "//vendor/github.com/bradleyfalzon/ghinstallation/v2:go_default_library",
         "//vendor/github.com/google/go-github/v68/github:go_default_library",
-        "//vendor/github.com/ProtonMail/go-crypto/openpgp:go_default_library",
     ],
 )

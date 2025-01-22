@@ -28,7 +28,6 @@ go_library(
         "//gitops/git/github_app:go_default_library",
         "//gitops/git/gitlab:go_default_library",
         "//vendor/github.com/golang/protobuf/proto:go_default_library",
-        "//vendor/golang.org/x/sync/errgroup:go_default_library",
     ],
 )
 
