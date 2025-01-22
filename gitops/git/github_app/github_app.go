@@ -97,6 +97,8 @@ func CreateCommit(baseBranch string, commitBranch string, gitopsPath string, fil
 	ctx := context.Background()
 	gh := createGithubClient()
 
+	log.Printf("Starting Create Commit: Commit branch: %s\n", commitBranch)
+	log.Printf("Starting Create Commit: Base branch: %s\n", baseBranch)
 	ref := getRef(ctx, gh, baseBranch, commitBranch)
 	tree, err := getTree(ctx, gh, ref, gitopsPath, files)
 	if err != nil {
@@ -146,18 +148,17 @@ func createGithubClient() *github.Client {
 }
 
 func getRef(ctx context.Context, gh *github.Client, baseBranch string, commitBranch string) *github.Reference {
-	// get the reference if the branch already exists
-	if ref, _, err := gh.Git.GetRef(ctx, *repoOwner, *repo, "refs/heads/"+commitBranch); err == nil {
-		return ref
-	}
-
+	log.Printf("Creating ref for branch %s from %s\n", commitBranch, baseBranch)
+	log.Printf("Getting ref for branch %s\n", baseBranch)
 	baseRef, _, err := gh.Git.GetRef(ctx, *repoOwner, *repo, "refs/heads/"+baseBranch)
 
 	if err != nil {
 		log.Fatalf("failed to get base branch ref: %v", err)
 	}
 
+	log.Printf("Creating ref for branch %s\n", commitBranch)
 	newRef := &github.Reference{Ref: github.String("refs/heads/" + commitBranch), Object: &github.GitObject{SHA: baseRef.Object.SHA}}
+
 	ref, _, err := gh.Git.CreateRef(ctx, *repoOwner, *repo, newRef)
 	if err != nil {
 		log.Fatalf("failed to create branch ref: %v", err)
