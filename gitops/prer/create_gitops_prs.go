@@ -324,7 +324,7 @@ func main() {
 
 		switch cfg.GitHost {
 		case "github_app":
-			github_app.CreateCommit(cfg.PRTargetBranch, cfg.BranchName, gitopsDir, modifiedFiles, commitMsg)
+			github_app.CreateCommit(cfg.BranchName, cfg.PRTargetBranch, gitopsDir, modifiedFiles, commitMsg)
 			return
 		default:
 			workdir.Push(updatedBranches)
