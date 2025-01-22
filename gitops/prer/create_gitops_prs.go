@@ -296,12 +296,6 @@ func main() {
 		commitMsg := fmt.Sprintf("GitOps for release branch %s from %s commit %s\n%s",
 			cfg.ReleaseBranch, cfg.BranchName, cfg.GitCommit, commitmsg.Generate(targets))
 
-		if !workdir.IsClean() {
-			log.Println("executing get modified files")
-			log.Println(workdir.GetModifiedFiles())
-			log.Println("finishing get modified files")
-		}
-
 		files, err := workdir.GetModifiedFiles()
 
 		if err != nil {

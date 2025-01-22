@@ -23,7 +23,6 @@ var (
 	gitHubAppId             = flag.Int64("github_app_id", 1014336, "GitHub App Id")
 	gitHubAppInstallationId = flag.Int64("github_installation_id", 0, "GitHub App Id")
 	gitHubUser              = flag.String("github_user", "etsy", "GitHub User")
-	githubEmail             = flag.String("github_email", "", "GitHub Email")
 	gitHubAppName           = flag.String("github_app_name", "gitops-pr-creator", "Name of the GitHub App")
 )
 
