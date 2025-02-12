@@ -304,7 +304,7 @@ func main() {
 		}
 
 		modifiedFiles = append(modifiedFiles, files...)
-
+		log.Printf("Modified files: %v", modifiedFiles)
 		if workdir.Commit(commitMsg, cfg.GitOpsPath) {
 			log.Printf("Branch %s has changes, push required", branch)
 			updatedTargets = append(updatedTargets, targets...)

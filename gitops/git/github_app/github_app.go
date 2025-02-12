@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/google/go-github/v68/github"
@@ -18,13 +20,15 @@ var (
 	repoOwner               = flag.String("github_app_repo_owner", "", "the owner user/organization to use for github api requests")
 	repo                    = flag.String("github_app_repo", "", "the repo to use for github api requests")
 	githubEnterpriseHost    = flag.String("github_app_enterprise_host", "", "The host name of the private enterprise github, e.g. git.corp.adobe.com")
-	message                 = flag.String("message", "", "Message to send")
 	privateKey              = flag.String("private_key", "/var/run/agent-secrets/buildkite-agent/secrets/github-pr-creator-key", "Private Key")
 	gitHubAppId             = flag.Int64("github_app_id", 1014336, "GitHub App Id")
 	gitHubAppInstallationId = flag.Int64("github_installation_id", 0, "GitHub App Id")
-	gitHubUser              = flag.String("github_user", "etsy", "GitHub User")
-	gitHubAppName           = flag.String("github_app_name", "gitops-pr-creator", "Name of the GitHub App")
 )
+
+type FileEntry struct {
+	RelativePath string // Path for GitHub repository
+	FullPath     string // Path for local file reading
+}
 
 func CreatePR(from, to, title, body string) error {
 	if *repoOwner == "" {
@@ -99,6 +103,8 @@ func CreateCommit(baseBranch string, commitBranch string, gitopsPath string, fil
 
 	log.Printf("Starting Create Commit: Commit branch: %s\n", commitBranch)
 	log.Printf("Starting Create Commit: Base branch: %s\n", baseBranch)
+	log.Printf("GitOps Path: %s\n", gitopsPath)
+	log.Printf("Modified Files: %v\n", files)
 	ref := getRef(ctx, gh, baseBranch, commitBranch)
 	tree, err := getTree(ctx, gh, ref, gitopsPath, files)
 	if err != nil {
@@ -107,6 +113,53 @@ func CreateCommit(baseBranch string, commitBranch string, gitopsPath string, fil
 
 	pushCommit(ctx, gh, ref, tree, commitMsg)
 	createPR(ctx, gh, baseBranch, commitBranch, commitMsg, "")
+}
+
+func getFilesToCommit(inputPath string) ([]FileEntry, error) {
+	inputPath = strings.TrimSuffix(inputPath, "/")
+	absInputPath, err := filepath.Abs(inputPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get absolute path for input: %v", err)
+	}
+
+	info, err := os.Stat(absInputPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to access input path %s: %v", absInputPath, err)
+	}
+
+	var fileEntries []FileEntry
+	if info.IsDir() {
+		err = filepath.Walk(absInputPath, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if !info.IsDir() {
+				relPath, err := filepath.Rel(absInputPath, path)
+				if err != nil {
+					return fmt.Errorf("failed to get relative path for %s: %v", path, err)
+				}
+				fileEntries = append(fileEntries, FileEntry{
+					RelativePath: relPath,
+					FullPath:     path,
+				})
+			}
+			return nil
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to walk input directory: %v", err)
+		}
+	} else {
+		fileEntries = append(fileEntries, FileEntry{
+			RelativePath: filepath.Base(absInputPath),
+			FullPath:     absInputPath,
+		})
+	}
+
+	if len(fileEntries) == 0 {
+		return nil, fmt.Errorf("no files found in input path %s", inputPath)
+	}
+
+	return fileEntries, nil
 }
 
 func createPR(ctx context.Context, gh *github.Client, baseBranch string, commitBranch string, prSubject string, prDescription string) {
