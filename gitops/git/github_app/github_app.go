@@ -105,8 +105,14 @@ func CreateCommit(baseBranch string, commitBranch string, gitopsPath string, fil
 	log.Printf("Starting Create Commit: Base branch: %s\n", baseBranch)
 	log.Printf("GitOps Path: %s\n", gitopsPath)
 	log.Printf("Modified Files: %v\n", files)
+	fileEntries, err := getFilesToCommit(files)
+
+	if err != nil {
+		log.Fatalf("failed to get files to commit: %v", err)
+	}
+
 	ref := getRef(ctx, gh, baseBranch, commitBranch)
-	tree, err := getTree(ctx, gh, ref, gitopsPath, files)
+	tree, err := getTree(ctx, gh, ref, fileEntries)
 	if err != nil {
 		log.Fatalf("failed to create tree: %v", err)
 	}
@@ -115,51 +121,56 @@ func CreateCommit(baseBranch string, commitBranch string, gitopsPath string, fil
 	createPR(ctx, gh, baseBranch, commitBranch, commitMsg, "")
 }
 
-func getFilesToCommit(inputPath string) ([]FileEntry, error) {
-	inputPath = strings.TrimSuffix(inputPath, "/")
-	absInputPath, err := filepath.Abs(inputPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get absolute path for input: %v", err)
-	}
+func getFilesToCommit(inputPaths []string) ([]FileEntry, error) {
+	var allFileEntries []FileEntry
 
-	info, err := os.Stat(absInputPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to access input path %s: %v", absInputPath, err)
-	}
-
-	var fileEntries []FileEntry
-	if info.IsDir() {
-		err = filepath.Walk(absInputPath, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if !info.IsDir() {
-				relPath, err := filepath.Rel(absInputPath, path)
-				if err != nil {
-					return fmt.Errorf("failed to get relative path for %s: %v", path, err)
-				}
-				fileEntries = append(fileEntries, FileEntry{
-					RelativePath: relPath,
-					FullPath:     path,
-				})
-			}
-			return nil
-		})
+	for _, inputPath := range inputPaths {
+		inputPath = strings.TrimSuffix(inputPath, "/")
+		absInputPath, err := filepath.Abs(inputPath)
 		if err != nil {
-			return nil, fmt.Errorf("failed to walk input directory: %v", err)
+			return nil, fmt.Errorf("failed to get absolute path for input: %v", err)
 		}
-	} else {
-		fileEntries = append(fileEntries, FileEntry{
-			RelativePath: filepath.Base(absInputPath),
-			FullPath:     absInputPath,
-		})
+
+		info, err := os.Stat(absInputPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to access input path %s: %v", absInputPath, err)
+		}
+
+		baseName := filepath.Base(absInputPath)
+		if info.IsDir() {
+			err = filepath.Walk(absInputPath, func(path string, info os.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
+				if !info.IsDir() {
+					relPath, err := filepath.Rel(absInputPath, path)
+					if err != nil {
+						return fmt.Errorf("failed to get relative path for %s: %v", path, err)
+					}
+					relPath = filepath.Join(baseName, relPath)
+					allFileEntries = append(allFileEntries, FileEntry{
+						RelativePath: relPath,
+						FullPath:     path,
+					})
+				}
+				return nil
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to walk input directory: %v", err)
+			}
+		} else {
+			allFileEntries = append(allFileEntries, FileEntry{
+				RelativePath: filepath.Base(absInputPath),
+				FullPath:     absInputPath,
+			})
+		}
 	}
 
-	if len(fileEntries) == 0 {
-		return nil, fmt.Errorf("no files found in input path %s", inputPath)
+	if len(allFileEntries) == 0 {
+		return nil, fmt.Errorf("no files found in input paths %v", inputPaths)
 	}
 
-	return fileEntries, nil
+	return allFileEntries, nil
 }
 
 func createPR(ctx context.Context, gh *github.Client, baseBranch string, commitBranch string, prSubject string, prDescription string) {
@@ -219,19 +230,23 @@ func getRef(ctx context.Context, gh *github.Client, baseBranch string, commitBra
 	return ref
 }
 
-func getTree(ctx context.Context, gh *github.Client, ref *github.Reference, gitopsPath string, filePaths []string) (tree *github.Tree, err error) {
+func getTree(ctx context.Context, gh *github.Client, ref *github.Reference, files []FileEntry) (tree *github.Tree, err error) {
 	// Create a tree with what to commit.
 	entries := []*github.TreeEntry{}
 
 	// Load each file into the tree.
-	for _, file := range filePaths {
-		fullPath := filepath.Join(gitopsPath, file)
-		content, err := os.ReadFile(fullPath)
+	for _, file := range files {
+		content, err := os.ReadFile(file.FullPath)
 		if err != nil {
-			log.Fatalf("failed to read file %s: %v", fullPath, err)
+			return nil, fmt.Errorf("failed to read file %s: %v", file.FullPath, err)
 		}
-
-		entries = append(entries, &github.TreeEntry{Path: github.String(file), Type: github.String("blob"), Content: github.String(string(content)), Mode: github.String("100644")})
+		log.Printf("Adding file %s to tree\n", file.RelativePath)
+		entries = append(entries, &github.TreeEntry{
+			Path:    github.Ptr(file.RelativePath),
+			Type:    github.Ptr("blob"),
+			Content: github.Ptr(string(content)),
+			Mode:    github.Ptr("100644"),
+		})
 	}
 
 	tree, _, err = gh.Git.CreateTree(ctx, *repoOwner, *repo, *ref.Object.SHA, entries)
