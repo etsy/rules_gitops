@@ -105,7 +105,7 @@ func CreateCommit(baseBranch string, commitBranch string, gitopsPath string, fil
 	log.Printf("Starting Create Commit: Base branch: %s\n", baseBranch)
 	log.Printf("GitOps Path: %s\n", gitopsPath)
 	log.Printf("Modified Files: %v\n", files)
-	fileEntries, err := getFilesToCommit(files)
+	fileEntries, err := getFilesToCommit(gitopsPath, files)
 
 	if err != nil {
 		log.Fatalf("failed to get files to commit: %v", err)
@@ -121,33 +121,29 @@ func CreateCommit(baseBranch string, commitBranch string, gitopsPath string, fil
 	createPR(ctx, gh, baseBranch, commitBranch, commitMsg, "")
 }
 
-func getFilesToCommit(inputPaths []string) ([]FileEntry, error) {
+func getFilesToCommit(gitopsPath string, inputPaths []string) ([]FileEntry, error) {
 	var allFileEntries []FileEntry
 
 	for _, inputPath := range inputPaths {
 		inputPath = strings.TrimSuffix(inputPath, "/")
-		absInputPath, err := filepath.Abs(inputPath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get absolute path for input: %v", err)
-		}
+		absInputPath := filepath.Join(gitopsPath, inputPath)
 
 		info, err := os.Stat(absInputPath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to access input path %s: %v", absInputPath, err)
 		}
 
-		baseName := filepath.Base(absInputPath)
 		if info.IsDir() {
 			err = filepath.Walk(absInputPath, func(path string, info os.FileInfo, err error) error {
 				if err != nil {
 					return err
 				}
 				if !info.IsDir() {
-					relPath, err := filepath.Rel(absInputPath, path)
+					// Get path relative to gitopsPath
+					relPath, err := filepath.Rel(gitopsPath, path)
 					if err != nil {
 						return fmt.Errorf("failed to get relative path for %s: %v", path, err)
 					}
-					relPath = filepath.Join(baseName, relPath)
 					allFileEntries = append(allFileEntries, FileEntry{
 						RelativePath: relPath,
 						FullPath:     path,
@@ -159,8 +155,9 @@ func getFilesToCommit(inputPaths []string) ([]FileEntry, error) {
 				return nil, fmt.Errorf("failed to walk input directory: %v", err)
 			}
 		} else {
+			// For single files, use the inputPath directly as it's already relative to gitopsPath
 			allFileEntries = append(allFileEntries, FileEntry{
-				RelativePath: filepath.Base(absInputPath),
+				RelativePath: inputPath,
 				FullPath:     absInputPath,
 			})
 		}
@@ -179,7 +176,7 @@ func createPR(ctx context.Context, gh *github.Client, baseBranch string, commitB
 		Head:                &commitBranch,
 		Base:                &baseBranch, // This is the target branch
 		Body:                &prDescription,
-		MaintainerCanModify: github.Bool(true),
+		MaintainerCanModify: github.Ptr(true),
 	}
 
 	pr, _, err := gh.PullRequests.Create(ctx, *repoOwner, *repo, newPR)
