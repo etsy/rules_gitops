@@ -126,6 +126,7 @@ func getGitServer(host string) git.Server {
 }
 
 func executeBazelQuery(query string) *analysis.CqueryResult {
+	log.Printf("Running Bazel Query: %s", query)
 	cmd := osexec.Command("bazel", "cquery",
 		"--output=proto",
 		"--noimplicit_deps",
