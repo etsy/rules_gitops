@@ -97,7 +97,7 @@ func CreatePR(from, to, title, body string) error {
 	return err
 }
 
-func CreateCommit(baseBranch string, commitBranch string, gitopsPath string, files []string, commitMsg string) {
+func CreateCommit(baseBranch string, commitBranch string, gitopsPath string, files []string, prTitle string, prDescription string) {
 	ctx := context.Background()
 	gh := createGithubClient()
 
@@ -117,8 +117,8 @@ func CreateCommit(baseBranch string, commitBranch string, gitopsPath string, fil
 		log.Fatalf("failed to create tree: %v", err)
 	}
 
-	pushCommit(ctx, gh, ref, tree, commitMsg)
-	createPR(ctx, gh, baseBranch, commitBranch, commitMsg, "")
+	pushCommit(ctx, gh, ref, tree, prTitle)
+	createPR(ctx, gh, baseBranch, commitBranch, prTitle, prDescription)
 }
 
 func getFilesToCommit(gitopsPath string, inputPaths []string) ([]FileEntry, error) {
