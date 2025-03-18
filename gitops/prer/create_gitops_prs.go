@@ -320,12 +320,22 @@ func main() {
 	processImages(updatedTargets, cfg)
 
 	if !cfg.DryRun {
-		commitMsg := fmt.Sprintf("GitOps for release branch %s from %s commit %s\n",
-			cfg.ReleaseBranch, cfg.BranchName, cfg.GitCommit)
+		slug := os.Getenv("BUILDKITE_PIPELINE_SLUG")
+		url := os.Getenv("BUILDKITE_BUILD_URL")
+		repo := os.Getenv("BUILDKITE_REPO")
+		sha := os.Getenv("BUILDKITE_COMMIT")
+		repo = strings.Replace(repo, ":", "/", 1)
+		repo = strings.Replace(repo, "git@", "https://", 1)
+		repo = strings.Replace(repo, ".git", "", 1)
+		commit := fmt.Sprintf("%s/commit/%s", repo, sha)
+		shortSha := sha[:7]
+
+		prTitle := fmt.Sprintf("Gitops Deploy: %s - %s", slug, shortSha)
+		prDescription := fmt.Sprintf("Automated PR for [%s](%s) via [Buildkite Pipeline](%s)", slug, commit, url)
 
 		switch cfg.GitHost {
 		case "github_app":
-			github_app.CreateCommit(cfg.PRTargetBranch, cfg.BranchName, gitopsDir, modifiedFiles, commitMsg)
+			github_app.CreateCommit(cfg.PRTargetBranch, cfg.BranchName, gitopsDir, modifiedFiles, prTitle, prDescription)
 			return
 		default:
 			workdir.Push(updatedBranches)
