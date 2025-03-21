@@ -467,7 +467,7 @@ gitops = rule(
     attrs = {
         "srcs": attr.label_list(providers = (GitopsArtifactsInfo,)),
         "cluster": attr.string(mandatory = True),
-        "namespace": attr.string(default = "")
+        "namespace": attr.string(default = ""),
         "deployment_branch": attr.string(),
         "gitops_path": attr.string(),
         "app_name": attr.string(),
@@ -566,7 +566,7 @@ kubectl = rule(
     attrs = {
         "srcs": attr.label_list(providers = (GitopsArtifactsInfo,)),
         "cluster": attr.string(mandatory = True),
-         "namespace": attr.string(default = "")
+         "namespace": attr.string(default = ""),
         "command": attr.string(default = "apply"),
         "user": attr.string(),
         "push": attr.bool(default = True),
