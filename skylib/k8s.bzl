@@ -24,12 +24,14 @@ def _show_impl(ctx):
     script_content = "#!/usr/bin/env bash\nset -e\n"
 
     kustomize_outputs = []
-    script_template = "{template_engine} --template={infile} --variable=NAMESPACE={namespace} --stamp_info_file={info_file}\n"
+    script_template = "{template_engine} --template={infile} {namespace_var} --stamp_info_file={info_file}\n"
+    namespace_var = "--variable=NAMESPACE=" + ctx.attr.namespace if ctx.attr.namespace else ""
+    
     for dep in ctx.attr.src.files.to_list():
         kustomize_outputs.append(script_template.format(
             infile = dep.short_path,
             template_engine = ctx.executable._template_engine.short_path,
-            namespace = ctx.attr.namespace,
+            namespace_var = namespace_var,
             info_file = ctx.file._info_file.short_path,
         ))
 
@@ -50,7 +52,7 @@ show = rule(
         ),
         "namespace": attr.string(
             doc = "kubernetes namespace.",
-            mandatory = True,
+            default = "",
         ),
         "_info_file": attr.label(
             default = Label("//skylib:more_stable_status.txt"),
@@ -232,9 +234,6 @@ def k8s_deploy(
             visibility = visibility,
         )
     else:
-        # gitops
-        if not namespace:
-            fail("namespace must be defined for gitops k8s_deploy")
         image_pushes = _image_pushes(
             name_suffix = ".push",
             images = images,
@@ -243,9 +242,11 @@ def k8s_deploy(
             image_digest_tag = image_digest_tag,
             tags = tags,
         )
+        
+        # Make namespace optional in the kustomize call
         kustomize(
             name = name,
-            namespace = namespace,
+            namespace = namespace if namespace else "",  # Pass empty string if None
             configmaps_srcs = configmaps_srcs,
             secrets_srcs = secrets_srcs,
             # disable_name_suffix_hash is renamed to configmaps_renaming in recent Kustomize
@@ -269,24 +270,28 @@ def k8s_deploy(
             openapi_path = openapi_path,
             tags = tags,
         )
+        
+        # Make namespace optional in the kubectl call
         kubectl(
             name = name + ".apply",
             srcs = [name],
             cluster = cluster,
             user = user,
-            namespace = namespace,
+            namespace = namespace if namespace else "",  # Pass empty string if None
             tags = tags,
             visibility = visibility,
         )
+        
+        # Make namespace optional in the gitops call
         kustomize_gitops(
             name = name + ".gitops",
             srcs = [name],
             cluster = cluster,
-            namespace = namespace,
+            namespace = namespace if namespace else "",  # Pass empty string if None
             gitops_path = gitops_path,
             app_name = app_name,
             strip_prefixes = [
-                namespace + "-",
+                (namespace + "-") if namespace else "",
                 cluster + "-",
             ],
             deployment_branch = deployment_branch,
@@ -294,10 +299,12 @@ def k8s_deploy(
             tags = tags,
             visibility = ["//visibility:public"],
         )
+        
+        # Make namespace optional in the show call
         show(
             name = name + ".show",
             src = name,
-            namespace = namespace,
+            namespace = namespace if namespace else "",  # Pass empty string if None
             tags = tags,
             visibility = visibility,
         )
