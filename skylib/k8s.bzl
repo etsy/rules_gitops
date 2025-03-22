@@ -116,6 +116,7 @@ def k8s_deploy(
         cluster = "dev",
         user = None,
         namespace = None,
+        respect_resource_namespace = False,
         configmaps_srcs = None,
         secrets_srcs = None,
         configmaps_renaming = None,  # configmaps renaming policy. Could be None or 'hash'.
@@ -247,6 +248,7 @@ def k8s_deploy(
         kustomize(
             name = name,
             namespace = namespace if namespace else "",  # Pass empty string if None
+            respect_resource_namespace = respect_resource_namespace,
             configmaps_srcs = configmaps_srcs,
             secrets_srcs = secrets_srcs,
             # disable_name_suffix_hash is renamed to configmaps_renaming in recent Kustomize
@@ -278,6 +280,7 @@ def k8s_deploy(
             cluster = cluster,
             user = user,
             namespace = namespace if namespace else "",  # Pass empty string if None
+            respect_resource_namespace = respect_resource_namespace,
             tags = tags,
             visibility = visibility,
         )
