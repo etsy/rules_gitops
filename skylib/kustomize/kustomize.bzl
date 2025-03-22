@@ -84,8 +84,43 @@ def _kustomize_impl(ctx):
     for _, f in enumerate(ctx.files.manifests):
         kustomization_yaml += "- {}/{}\n".format(upupup, f.path)
 
-    if ctx.attr.namespace and ctx.attr.namespace.strip():
-        kustomization_yaml += "namespace: '{}'\n".format(ctx.attr.namespace)
+    if ctx.attr.namespace:
+        if ctx.attr.respect_resource_namespace:
+            # Copy the optional namespace transformer to the build directory
+            transformer_file = ctx.actions.declare_file(ctx.attr.name + "/optional-namespace-transformer.yaml")
+            ctx.actions.write(transformer_file, """
+apiVersion: builtin
+kind: NamespaceTransformer
+metadata:
+  name: optionalNamespace
+spec:
+  namespace: {}
+  fieldSpecs:
+  - path: metadata/namespace
+    create: true
+  nonNamespacedResources:
+  - ClusterRole
+  - ClusterRoleBinding
+  - CustomResourceDefinition
+  - Namespace
+  - PersistentVolume
+  - PodSecurityPolicy
+  - StorageClass
+  - VolumeAttachment
+  - Node
+  - PriorityClass
+  - RuntimeClass
+""".format(ctx.attr.namespace))
+            
+            # Add the transformer to kustomization.yaml
+            kustomization_yaml += "transformers:\n"
+            kustomization_yaml += "- {}\n".format(transformer_file.path.split("/")[-1])
+            
+            tmpfiles.append(transformer_file)
+        else:
+            # Standard behavior - force namespace
+            kustomization_yaml += "namespace: '{}'\n".format(ctx.attr.namespace)
+            
         use_stamp = use_stamp or "{" in ctx.attr.namespace
 
     if ctx.attr.name_prefix:
@@ -299,6 +334,10 @@ kustomize = rule(
         "name_prefix": attr.string(),
         "name_suffix": attr.string(),
         "namespace": attr.string(default = ""),
+        "respect_resource_namespace": attr.bool(
+            default = False,
+            doc = "If true, only apply namespace to resources that don't already have one defined",
+        ),
         "objects": attr.label_list(doc = "a list of dependent kustomize objects", providers = (GitopsArtifactsInfo,)),
         "patches": attr.label_list(allow_files = True),
         "image_name_patches": attr.string_dict(default = {}, doc = "set new names for selected images"),
@@ -534,16 +573,32 @@ def _kubectl_impl(ctx):
         transitive_runfiles += [exe[DefaultInfo].default_runfiles for exe in trans_img_pushes]
 
     namespace = ctx.attr.namespace if ctx.attr.namespace else ""
+    respect_ns = ctx.attr.respect_resource_namespace
     for inattr in ctx.attr.srcs:
         for infile in inattr.files.to_list():
             ns_arg = "--variable=NAMESPACE=" + namespace if namespace else ""
-            statements += "{template_engine} --template={infile} {ns_arg} --stamp_info_file={info_file} | kubectl --cluster=\"$CLUSTER\" --user=\"$USER\" {kubectl_command} -f -\n".format(
-                infile = infile.short_path,
-                kubectl_command = kubectl_command_arg,
-                template_engine = get_runfile_path(ctx, ctx.executable._template_engine),
-                ns_arg = ns_arg,
-                info_file = ctx.file._info_file.short_path,
-            )
+            
+            # If we're respecting resource namespaces and have a namespace set, use the set-namespace tool
+            # which only applies namespace if the resource doesn't already have one
+            if respect_ns and namespace:
+                statements += "{template_engine} --template={infile} {ns_arg} --stamp_info_file={info_file} | {set_namespace} {namespace} | kubectl --cluster=\"$CLUSTER\" --user=\"$USER\" {kubectl_command} -f -\n".format(
+                    infile = infile.short_path,
+                    kubectl_command = kubectl_command_arg,
+                    template_engine = get_runfile_path(ctx, ctx.executable._template_engine),
+                    ns_arg = ns_arg,
+                    info_file = ctx.file._info_file.short_path,
+                    set_namespace = get_runfile_path(ctx, ctx.executable._set_namespace),
+                    namespace = namespace,
+                )
+            else:
+                # Original behavior
+                statements += "{template_engine} --template={infile} {ns_arg} --stamp_info_file={info_file} | kubectl --cluster=\"$CLUSTER\" --user=\"$USER\" {kubectl_command} -f -\n".format(
+                    infile = infile.short_path,
+                    kubectl_command = kubectl_command_arg,
+                    template_engine = get_runfile_path(ctx, ctx.executable._template_engine),
+                    ns_arg = ns_arg,
+                    info_file = ctx.file._info_file.short_path,
+                )
 
     ctx.actions.expand_template(
         template = ctx.file._template,
@@ -566,7 +621,16 @@ kubectl = rule(
     attrs = {
         "srcs": attr.label_list(providers = (GitopsArtifactsInfo,)),
         "cluster": attr.string(mandatory = True),
-         "namespace": attr.string(default = ""),
+        "namespace": attr.string(default = ""),
+        "respect_resource_namespace": attr.bool(
+            default = False,
+            doc = "If true, don't force the namespace specified in the rule on resources that have their own namespace defined",
+        ),
+        "_set_namespace": attr.label(
+            default = Label("//skylib/kustomize:set_namespace"),
+            cfg = "exec",
+            executable = True,
+        ),
         "command": attr.string(default = "apply"),
         "user": attr.string(),
         "push": attr.bool(default = True),
