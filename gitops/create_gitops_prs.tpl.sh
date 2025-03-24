@@ -2,6 +2,7 @@
 set -x
 set -e
 
-GIT_COMMIT=$(git rev-parse HEAD)
+CURR_GIT_COMMIT=$(git rev-parse HEAD)
+GIT_COMMIT=${BUILDKITE_COMMIT:-$CURR_GIT_COMMIT}
 
-%{prer} --git_commit=$GIT_COMMIT %{params} "${@}"
+%{prer} --git_commit $GIT_COMMIT %{params}
