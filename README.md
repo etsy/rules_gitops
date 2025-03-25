@@ -372,6 +372,8 @@ For the full list of `create_gitops_prs` command line options, run:
 bazel run @rules_gitops//gitops/prer:create_gitops_prs
 ```
 
+Alternatively, you can use the `create_gitops_prs` rule that references `gitops` targets. You can run the target to template yaml & image push in parallel.
+
 <a name="gitops-and-deployment-supported-git-servers"></a>
 ### Supported Git Servers
 

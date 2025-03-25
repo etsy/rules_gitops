@@ -40,6 +40,15 @@ def __create_gitops_prs_impl(ctx):
         params += "--github_repo_owner {} ".format(ctx.attr.github_repo_owner)
     if ctx.attr.github_repo:
         params += "--github_repo {} ".format(ctx.attr.github_repo)
+    # Etsy Custom params
+    if ctx.attr.github_app_id:
+        params += "--github_app_id {} ".format(ctx.attr.github_app_id)
+    if ctx.attr.github_installation_id:
+        params += "--github_installation_id {} ".format(ctx.attr.github_installation_id)
+    if ctx.attr.github_app_repo_owner:
+        params += "--github_app_repo_owner {} ".format(ctx.attr.github_app_repo_owner)
+    if ctx.attr.private_key:
+        params += "--private_key {} ".format(ctx.attr.private_key)
 
     ctx.actions.expand_template(
         template = ctx.file._tpl,
@@ -126,6 +135,19 @@ create_gitops_prs = rule(
             allow_single_file = True,
             cfg = "exec",
             executable = True,
+        ),
+        # Etsy Custom params
+        "github_app_id": attr.string(
+            doc = "GitHub App Id"
+        ),
+        "github_installation_id": attr.string(
+            doc = "GitHub App Installation Id"
+        ),
+        "github_app_repo_owner": attr.string(
+            doc = "the owner user/organization to use for github api requests"
+        ),
+        "private_key": attr.string(
+            doc = "Private Key"
         ),
     },
     executable = True,

@@ -58,6 +58,10 @@ type Config struct {
 	PRBody                 string
 	DeploymentBranchSuffix string
 
+	// create_gitops_prs rule
+	ResolvedBinaries SliceFlags
+	ResolvedPushes   SliceFlags
+
 	// Dependencies
 	DependencyKinds []string
 	DependencyNames []string
@@ -91,6 +95,10 @@ func initConfig() *Config {
 	flag.StringVar(&cfg.PRTitle, "gitops_pr_title", "", "PR title")
 	flag.StringVar(&cfg.PRBody, "gitops_pr_body", "", "PR body message")
 	flag.StringVar(&cfg.DeploymentBranchSuffix, "deployment_branch_suffix", "", "Suffix for deployment branch names")
+
+	// create_gitops_prs rule sets these when used with `bazel run`
+	flag.Var(&cfg.ResolvedBinaries, "resolved_binary", "list of resolved gitops binaries to run. Can be specified multiple times. format is releasetrain:cmd/binary/to/run/command. Default is empty")
+	flag.Var(&cfg.ResolvedPushes, "resolved_push", "list of resolved push binaries to run. Can be specified multiple times. format is cmd/binary/to/run/command. Default is empty")
 
 	// Dependencies
 	var kinds, names, attrs SliceFlags
@@ -143,6 +151,27 @@ func executeBazelQuery(query string) *analysis.CqueryResult {
 	}
 
 	return result
+}
+
+func processResolvedImages(cfg *Config) {
+	resolvedPushChan := make(chan string)
+	var wg sync.WaitGroup
+	wg.Add(cfg.PushParallelism)
+
+	for i := 0; i < cfg.PushParallelism; i++ {
+		go func() {
+			defer wg.Done()
+			for cmd := range resolvedPushChan {
+				exec.Mustex("", cmd)
+			}
+		}()
+	}
+
+	for _, r := range cfg.ResolvedPushes {
+		resolvedPushChan <- r
+	}
+	close(resolvedPushChan)
+	wg.Wait()
 }
 
 func processImages(targets []string, cfg *Config) {
@@ -231,17 +260,30 @@ func main() {
 		}
 	}
 
-	// Find release trains
-	query := fmt.Sprintf("attr(deployment_branch, \".+\", attr(release_branch_prefix, \"%s\", kind(gitops, %s)))",
-		cfg.ReleaseBranch, cfg.Targets)
-
-	result := executeBazelQuery(query)
-
 	trains := make(map[string][]string)
-	for _, t := range result.Results {
-		for _, attr := range t.Target.GetRule().GetAttribute() {
-			if attr.GetName() == "deployment_branch" {
-				trains[attr.GetStringValue()] = append(trains[attr.GetStringValue()], t.Target.Rule.GetName())
+	if len(cfg.ResolvedBinaries) > 0 {
+		// This condition is used when calling the script from create_gitops_pr rules
+		// When you call `bazel run <create_gitops_pr target>`, you can't call another bazel query within a bazel run command
+		// So we have to rely on resolved binaries that were passed in
+		for _, rb := range cfg.ResolvedBinaries {
+			releaseTrain, bin, found := strings.Cut(rb, ":")
+			if !found {
+				log.Fatalf("resolved_binaries: invalid resolved_binary format: %s", rb)
+			}
+			trains[releaseTrain] = append(trains[releaseTrain], bin)
+		}
+	} else {
+		// Find release trains
+		query := fmt.Sprintf("attr(deployment_branch, \".+\", attr(release_branch_prefix, \"%s\", kind(gitops, %s)))",
+			cfg.ReleaseBranch, cfg.Targets)
+
+		result := executeBazelQuery(query)
+
+		for _, t := range result.Results {
+			for _, attr := range t.Target.GetRule().GetAttribute() {
+				if attr.GetName() == "deployment_branch" {
+					trains[attr.GetStringValue()] = append(trains[attr.GetStringValue()], t.Target.Rule.GetName())
+				}
 			}
 		}
 	}
@@ -317,7 +359,11 @@ func main() {
 		return
 	}
 
-	processImages(updatedTargets, cfg)
+	if len(cfg.ResolvedPushes) > 0 {
+		processResolvedImages(cfg)
+	} else {
+		processImages(updatedTargets, cfg)
+	}
 
 	if !cfg.DryRun {
 		slug := os.Getenv("BUILDKITE_PIPELINE_SLUG")
