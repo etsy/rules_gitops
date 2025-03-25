@@ -161,8 +161,8 @@ func processResolvedImages(cfg *Config) {
 	for i := 0; i < cfg.PushParallelism; i++ {
 		go func() {
 			defer wg.Done()
-			for target := range resolvedPushChan {
-				processTarget(target, cfg.BazelCmd)
+			for cmd := range resolvedPushChan {
+				exec.Mustex("", cmd)
 			}
 		}()
 	}
