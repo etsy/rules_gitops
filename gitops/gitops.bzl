@@ -47,6 +47,8 @@ def __create_gitops_prs_impl(ctx):
         params += "--github_installation_id {} ".format(ctx.attr.github_installation_id)
     if ctx.attr.github_app_repo_owner:
         params += "--github_app_repo_owner {} ".format(ctx.attr.github_app_repo_owner)
+    if ctx.attr.github_app_repo:
+        params += "--github_app_repo {} ".format(ctx.attr.github_app_repo)
     if ctx.attr.private_key:
         params += "--private_key {} ".format(ctx.attr.private_key)
 
