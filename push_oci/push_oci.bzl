@@ -120,7 +120,11 @@ def push_oci(
 
     if not repository:
         label = native.package_relative_label(image)
-        repository = "{}/{}".format(label.package, label.name)
+        if label.package == "":
+            # When the  target is in root dir, package returns an empty string (e.g. images pulled by oci_pull)
+            repository = "external/{}".format(label.name)
+        else:
+            repository = "{}/{}".format(label.package, label.name)
     if registry:
         repository = "{}/{}".format(registry, repository)
     push_oci_rule(
