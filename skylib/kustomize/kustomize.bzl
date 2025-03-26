@@ -92,59 +92,8 @@ def _kustomize_impl(ctx):
 apiVersion: builtin
 kind: NamespaceTransformer
 metadata:
-  name: optionalNamespace
-spec:
-  namespace: {}
-  fieldSpecs:
-  - path: metadata/namespace
-    create: true # This ensures the field is created if it doesn't exist
-    kind: Deployment
-  - path: metadata/namespace
-    create: true
-    kind: Service
-  - path: metadata/namespace
-    create: true
-    kind: Pod
-  - path: metadata/namespace
-    create: true
-    kind: StatefulSet
-  - path: metadata/namespace
-    create: true
-    kind: DaemonSet
-  - path: metadata/namespace
-    create: true
-    kind: Job
-  - path: metadata/namespace
-    create: true
-    kind: CronJob
-  - path: metadata/namespace
-    create: true
-    kind: ConfigMap
-  - path: metadata/namespace
-    create: true
-    kind: Secret
-  - path: metadata/namespace
-    create: true
-    kind: Ingress
-  - path: metadata/namespace
-    create: true
-    kind: PersistentVolumeClaim
-  # Generic catch-all for custom resources that support namespaces
-  - path: metadata/namespace
-    create: true
-    kind: "*"
-  nonNamespacedResources:
-  - ClusterRole
-  - ClusterRoleBinding
-  - CustomResourceDefinition
-  - Namespace
-  - PersistentVolume
-  - PodSecurityPolicy
-  - StorageClass
-  - VolumeAttachment
-  - Node
-  - PriorityClass
-  - RuntimeClass
+  name: notImportantHere
+unsetOnly: true
 """.format(ctx.attr.namespace))
             
             # Add the transformer to kustomization.yaml
