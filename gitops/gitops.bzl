@@ -148,6 +148,9 @@ create_gitops_prs = rule(
         "github_app_repo_owner": attr.string(
             doc = "the owner user/organization to use for github api requests"
         ),
+        "github_app_repo": attr.string(
+            doc = "the repository to use for pull requests via github app credentials"
+        ),
         "private_key": attr.string(
             doc = "Private Key"
         ),
