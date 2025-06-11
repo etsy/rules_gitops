@@ -18,8 +18,6 @@ def __create_gitops_prs_impl(ctx):
         params += "--resolved_push {} ".format(exe.files_to_run.executable.short_path)
     if ctx.attr.release_branch:
         params += "--release_branch {} ".format(ctx.attr.release_branch)
-    if ctx.attr.branch_name:
-        params += "--branch_name {} ".format(ctx.attr.branch_name)
     if ctx.attr.git_repo:
         params += "--git_repo {} ".format(ctx.attr.git_repo)
     if ctx.attr.gitops_path:
@@ -109,9 +107,6 @@ create_gitops_prs = rule(
         ),
         "release_branch": attr.string(
             doc = "release branch to create PRs in.",
-        ),
-        "branch_name": attr.string(
-            doc = "brach name to be used for the PR",
         ),
         "deploy_branch_prefix": attr.string(
             doc = "prefix for deployment branches",
