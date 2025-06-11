@@ -8,7 +8,6 @@ def __create_gitops_prs_impl(ctx):
             src_by_train[gai.deployment_branch] = []
         src_by_train[gai.deployment_branch].append(src.files_to_run.executable)
 
-    # print("src_by_train:", src_by_train)
     trans_img_pushes = depset(transitive = [obj[GitopsArtifactsInfo].image_pushes for obj in ctx.attr.srcs if obj.files_to_run.executable]).to_list()
     params = ""
     for deployment_branch in src_by_train.keys():
@@ -19,6 +18,8 @@ def __create_gitops_prs_impl(ctx):
         params += "--resolved_push {} ".format(exe.files_to_run.executable.short_path)
     if ctx.attr.release_branch:
         params += "--release_branch {} ".format(ctx.attr.release_branch)
+    if ctx.attr.branch_name:
+        params += "--branch_name {} ".format(ctx.attr.branch_name)
     if ctx.attr.git_repo:
         params += "--git_repo {} ".format(ctx.attr.git_repo)
     if ctx.attr.gitops_path:
@@ -52,6 +53,7 @@ def __create_gitops_prs_impl(ctx):
     if ctx.attr.private_key:
         params += "--private_key {} ".format(ctx.attr.private_key)
 
+    # git_commit & branch_name params are set in _tpl since it's read from env variables
     ctx.actions.expand_template(
         template = ctx.file._tpl,
         substitutions = {
@@ -107,6 +109,9 @@ create_gitops_prs = rule(
         ),
         "release_branch": attr.string(
             doc = "release branch to create PRs in.",
+        ),
+        "branch_name": attr.string(
+            doc = "brach name to be used for the PR",
         ),
         "deploy_branch_prefix": attr.string(
             doc = "prefix for deployment branches",
