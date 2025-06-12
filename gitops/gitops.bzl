@@ -8,7 +8,6 @@ def __create_gitops_prs_impl(ctx):
             src_by_train[gai.deployment_branch] = []
         src_by_train[gai.deployment_branch].append(src.files_to_run.executable)
 
-    # print("src_by_train:", src_by_train)
     trans_img_pushes = depset(transitive = [obj[GitopsArtifactsInfo].image_pushes for obj in ctx.attr.srcs if obj.files_to_run.executable]).to_list()
     params = ""
     for deployment_branch in src_by_train.keys():
@@ -52,6 +51,7 @@ def __create_gitops_prs_impl(ctx):
     if ctx.attr.private_key:
         params += "--private_key {} ".format(ctx.attr.private_key)
 
+    # git_commit & branch_name params are set in _tpl since it's read from env variables
     ctx.actions.expand_template(
         template = ctx.file._tpl,
         substitutions = {
