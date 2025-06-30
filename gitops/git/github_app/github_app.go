@@ -220,8 +220,11 @@ func getRef(ctx context.Context, gh *github.Client, baseBranch string, commitBra
 	log.Printf("Creating ref for branch %s\n", commitBranch)
 	newRef := &github.Reference{Ref: github.String("refs/heads/" + commitBranch), Object: &github.GitObject{SHA: baseRef.Object.SHA}}
 
-	ref, _, err := gh.Git.CreateRef(ctx, *repoOwner, *repo, newRef)
+	ref, resp, err := gh.Git.CreateRef(ctx, *repoOwner, *repo, newRef)
 	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusUnprocessableEntity {
+			log.Printf("Branch reference '%s' already exists. Update your rules gitops pipeline to make your branch name more unique", commitBranch)
+		}
 		log.Fatalf("failed to create branch ref: %v", err)
 	}
 	return ref
