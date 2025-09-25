@@ -163,6 +163,57 @@ func (r *Repo) Push(branches []string) {
 	exec.Mustex(r.Dir, "git", args...)
 }
 
+type GitFileChange struct {
+	Path   string
+	Status string // "A"dded, "M"odified, "D"eleted, etc.
+}
+
+func (r *Repo) GetDetailedChanges() ([]GitFileChange, error) {
+	cmd := oe.Command("git", "status", "--porcelain")
+	cmd.Dir = r.Dir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get git status: %w", err)
+	}
+
+	if len(output) == 0 {
+		return []GitFileChange{}, nil
+	}
+
+	// Split output into lines and process each line
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	changes := make([]GitFileChange, 0, len(lines))
+
+	for _, line := range lines {
+		if len(line) > 3 {
+			// git status --porcelain output format is "XY filename"
+			// where X is staged status, Y is unstaged status
+			statusCode := line[:2]
+			filename := strings.TrimSpace(line[2:])
+
+			// Determine the primary status
+			var status string
+			if strings.Contains(statusCode, "D") {
+				status = "D" // Deleted
+			} else if strings.Contains(statusCode, "A") {
+				status = "A" // Added
+			} else if strings.Contains(statusCode, "M") {
+				status = "M" // Modified
+			} else {
+				status = "M" // Default to modified for other cases
+			}
+
+			changes = append(changes, GitFileChange{
+				Path:   filename,
+				Status: status,
+			})
+			log.Printf("Git change: %s %s", status, filename)
+		}
+	}
+
+	return changes, nil
+}
+
 func (r *Repo) GetModifiedFiles() ([]string, error) {
 	cmd := oe.Command("git", "status", "--porcelain")
 	cmd.Dir = r.Dir

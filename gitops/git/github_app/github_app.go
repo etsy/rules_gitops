@@ -97,7 +97,7 @@ func CreatePR(from, to, title, body string) error {
 	return err
 }
 
-func CreateCommit(baseBranch string, commitBranch string, gitopsPath string, files []string, prTitle string, prDescription string) {
+func CreateCommit(baseBranch string, commitBranch string, gitopsPath string, files []string, deletedFiles []string, prTitle string, prDescription string, branchesNeedingRecreation []string) {
 	ctx := context.Background()
 	gh := createGithubClient()
 
@@ -105,20 +105,54 @@ func CreateCommit(baseBranch string, commitBranch string, gitopsPath string, fil
 	log.Printf("Starting Create Commit: Base branch: %s\n", baseBranch)
 	log.Printf("GitOps Path: %s\n", gitopsPath)
 	log.Printf("Modified Files: %v\n", files)
-	fileEntries, err := getFilesToCommit(gitopsPath, files)
+	log.Printf("Deleted Files: %v\n", deletedFiles)
+	log.Printf("Branches needing recreation: %v\n", branchesNeedingRecreation)
 
-	if err != nil {
-		log.Fatalf("failed to get files to commit: %v", err)
+	// Check if this branch needs recreation due to deletions
+	needsRecreation := false
+	branchName := fmt.Sprintf("deploy/%s", commitBranch)
+	for _, recreateBranch := range branchesNeedingRecreation {
+		if recreateBranch == branchName {
+			needsRecreation = true
+			break
+		}
 	}
 
-	ref := getRef(ctx, gh, baseBranch, commitBranch)
-	tree, err := getTree(ctx, gh, ref, fileEntries)
-	if err != nil {
-		log.Fatalf("failed to create tree: %v", err)
+	var ref *github.Reference
+	var err error
+
+	if needsRecreation {
+		log.Printf("Branch %s needs recreation due to target deletions, force-resetting from %s\n", branchName, baseBranch)
+		ref, err = forceResetBranch(ctx, gh, baseBranch, branchName)
+		if err != nil {
+			log.Fatalf("failed to force reset branch: %v", err)
+		}
+
+		// When recreating, we need to include all current files in the GitOps directory
+		allFileEntries, err := getAllFilesToCommit(gitopsPath)
+		if err != nil {
+			log.Fatalf("failed to get all files to commit: %v", err)
+		}
+
+		tree, err := getTree(ctx, gh, ref, allFileEntries)
+		if err != nil {
+			log.Fatalf("failed to create tree: %v", err)
+		}
+
+		pushCommit(ctx, gh, ref, tree, prTitle)
+	} else {
+		// Handle incremental changes (adds/modifies/deletes)
+		ref = getRef(ctx, gh, baseBranch, branchName)
+
+		tree, err := getTreeWithChanges(ctx, gh, ref, gitopsPath, files, deletedFiles)
+		if err != nil {
+			log.Fatalf("failed to create tree with changes: %v", err)
+		}
+
+		pushCommit(ctx, gh, ref, tree, prTitle)
 	}
 
-	pushCommit(ctx, gh, ref, tree, prTitle)
-	createPR(ctx, gh, baseBranch, commitBranch, prTitle, prDescription)
+	createPR(ctx, gh, baseBranch, branchName, prTitle, prDescription)
 }
 
 func getFilesToCommit(gitopsPath string, inputPaths []string) ([]FileEntry, error) {
@@ -227,6 +261,50 @@ func getRef(ctx context.Context, gh *github.Client, baseBranch string, commitBra
 	return ref
 }
 
+func getTreeWithChanges(ctx context.Context, gh *github.Client, ref *github.Reference, gitopsPath string, addedModifiedFiles []string, deletedFiles []string) (tree *github.Tree, err error) {
+	entries := []*github.TreeEntry{}
+
+	// Add/modify files
+	if len(addedModifiedFiles) > 0 {
+		fileEntries, err := getFilesToCommit(gitopsPath, addedModifiedFiles)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get files to commit: %v", err)
+		}
+
+		for _, file := range fileEntries {
+			content, err := os.ReadFile(file.FullPath)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read file %s: %v", file.FullPath, err)
+			}
+			log.Printf("Adding/modifying file %s to tree\n", file.RelativePath)
+			entries = append(entries, &github.TreeEntry{
+				Path:    github.Ptr(file.RelativePath),
+				Type:    github.Ptr("blob"),
+				Content: github.Ptr(string(content)),
+				Mode:    github.Ptr("100644"),
+			})
+		}
+	}
+
+	// Delete files by setting SHA to nil
+	for _, deletedFile := range deletedFiles {
+		log.Printf("Deleting file %s from tree\n", deletedFile)
+		entries = append(entries, &github.TreeEntry{
+			Path: github.Ptr(deletedFile),
+			Mode: github.Ptr("100644"),
+			Type: github.Ptr("blob"),
+			SHA:  nil, // Setting SHA to nil deletes the file
+		})
+	}
+
+	if len(entries) == 0 {
+		return nil, fmt.Errorf("no changes to commit")
+	}
+
+	tree, _, err = gh.Git.CreateTree(ctx, *repoOwner, *repo, *ref.Object.SHA, entries)
+	return tree, err
+}
+
 func getTree(ctx context.Context, gh *github.Client, ref *github.Reference, files []FileEntry) (tree *github.Tree, err error) {
 	// Create a tree with what to commit.
 	entries := []*github.TreeEntry{}
@@ -248,6 +326,77 @@ func getTree(ctx context.Context, gh *github.Client, ref *github.Reference, file
 
 	tree, _, err = gh.Git.CreateTree(ctx, *repoOwner, *repo, *ref.Object.SHA, entries)
 	return tree, err
+}
+
+func forceResetBranch(ctx context.Context, gh *github.Client, baseBranch string, targetBranch string) (*github.Reference, error) {
+	// Get the base branch reference
+	baseRef, _, err := gh.Git.GetRef(ctx, *repoOwner, *repo, "refs/heads/"+baseBranch)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get base branch ref: %v", err)
+	}
+
+	// Try to get the existing target branch
+	targetRef, _, err := gh.Git.GetRef(ctx, *repoOwner, *repo, "refs/heads/"+targetBranch)
+	if err != nil {
+		// Branch doesn't exist, create it
+		log.Printf("Target branch %s doesn't exist, creating it\n", targetBranch)
+		newRef := &github.Reference{
+			Ref:    github.String("refs/heads/" + targetBranch),
+			Object: &github.GitObject{SHA: baseRef.Object.SHA},
+		}
+		createdRef, _, err := gh.Git.CreateRef(ctx, *repoOwner, *repo, newRef)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create branch ref: %v", err)
+		}
+		return createdRef, nil
+	}
+
+	// Branch exists, force update it to point to base branch
+	log.Printf("Force updating branch %s to match %s\n", targetBranch, baseBranch)
+	targetRef.Object.SHA = baseRef.Object.SHA
+	updatedRef, _, err := gh.Git.UpdateRef(ctx, *repoOwner, *repo, targetRef, true) // force=true
+	if err != nil {
+		return nil, fmt.Errorf("failed to force update branch ref: %v", err)
+	}
+
+	return updatedRef, nil
+}
+
+func getAllFilesToCommit(gitopsPath string) ([]FileEntry, error) {
+	var allFileEntries []FileEntry
+
+	// Walk through the entire GitOps directory and get all files
+	err := filepath.Walk(gitopsPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			// Get path relative to gitopsPath
+			relPath, err := filepath.Rel(gitopsPath, path)
+			if err != nil {
+				return fmt.Errorf("failed to get relative path for %s: %v", path, err)
+			}
+			// Skip hidden files and git files
+			if !strings.HasPrefix(filepath.Base(relPath), ".") {
+				allFileEntries = append(allFileEntries, FileEntry{
+					RelativePath: relPath,
+					FullPath:     path,
+				})
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to walk GitOps directory: %v", err)
+	}
+
+	if len(allFileEntries) == 0 {
+		return nil, fmt.Errorf("no files found in GitOps directory %s", gitopsPath)
+	}
+
+	log.Printf("Found %d files in GitOps directory\n", len(allFileEntries))
+	return allFileEntries, nil
 }
 
 func pushCommit(ctx context.Context, gh *github.Client, ref *github.Reference, tree *github.Tree, commitMessage string) {
