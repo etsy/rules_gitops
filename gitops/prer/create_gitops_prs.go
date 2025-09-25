@@ -309,10 +309,13 @@ func main() {
 	var updatedTargets []string
 	var updatedBranches []string
 	var modifiedFiles []string
+	var deletedFiles []string
+	var branchesNeedingRecreation []string
 
 	// Process each release train
 	for train, targets := range trains {
 		branch := fmt.Sprintf("deploy/%s%s", train, cfg.DeploymentBranchSuffix)
+		needsRecreation := false
 
 		if !workdir.SwitchToBranch(branch, cfg.PRTargetBranch) {
 			// Check if branch needs recreation due to deleted targets
@@ -325,9 +328,14 @@ func main() {
 			for _, t := range commitmsg.ExtractTargets(msg) {
 				if !currentTargets[t] {
 					workdir.RecreateBranch(branch, cfg.PRTargetBranch)
+					needsRecreation = true
 					break
 				}
 			}
+		}
+
+		if needsRecreation {
+			branchesNeedingRecreation = append(branchesNeedingRecreation, branch)
 		}
 
 		// Process targets
@@ -339,14 +347,27 @@ func main() {
 		commitMsg := fmt.Sprintf("GitOps for release branch %s from %s commit %s\n%s",
 			cfg.ReleaseBranch, cfg.BranchName, cfg.GitCommit, commitmsg.Generate(targets))
 
-		files, err := workdir.GetModifiedFiles()
+		changes, err := workdir.GetDetailedChanges()
 
 		if err != nil {
-			log.Fatalf("failed to get modified files: %v", err)
+			log.Fatalf("failed to get detailed changes: %v", err)
 		}
 
-		modifiedFiles = append(modifiedFiles, files...)
+		// Separate the changes by type
+		var addedModifiedFiles []string
+		var branchDeletedFiles []string
+		for _, change := range changes {
+			if change.Status == "D" {
+				branchDeletedFiles = append(branchDeletedFiles, change.Path)
+			} else {
+				addedModifiedFiles = append(addedModifiedFiles, change.Path)
+			}
+		}
+
+		modifiedFiles = append(modifiedFiles, addedModifiedFiles...)
+		deletedFiles = append(deletedFiles, branchDeletedFiles...)
 		log.Printf("Modified files: %v", modifiedFiles)
+		log.Printf("Deleted files: %v", deletedFiles)
 		if workdir.Commit(commitMsg, cfg.GitOpsPath) {
 			log.Printf("Branch %s has changes, push required", branch)
 			updatedTargets = append(updatedTargets, targets...)
@@ -381,7 +402,7 @@ func main() {
 
 		switch cfg.GitHost {
 		case "github_app":
-			github_app.CreateCommit(cfg.PRTargetBranch, cfg.BranchName, gitopsDir, modifiedFiles, prTitle, prDescription)
+			github_app.CreateCommit(cfg.PRTargetBranch, cfg.BranchName, gitopsDir, modifiedFiles, deletedFiles, prTitle, prDescription, branchesNeedingRecreation)
 			return
 		default:
 			workdir.Push(updatedBranches)
