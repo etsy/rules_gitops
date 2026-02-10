@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "queryparams",
+    srcs = [
+        "convert.go",
+        "doc.go",
+    ],
+    importmap = "github.com/fasterci/rules_gitops/vendor/k8s.io/apimachinery/pkg/conversion/queryparams",
+    importpath = "k8s.io/apimachinery/pkg/conversion/queryparams",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":queryparams",
+    visibility = ["//visibility:public"],
+)

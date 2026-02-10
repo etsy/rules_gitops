@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "estargz",
+    srcs = ["estargz.go"],
+    importmap = "github.com/fasterci/rules_gitops/vendor/github.com/google/go-containerregistry/internal/estargz",
+    importpath = "github.com/google/go-containerregistry/internal/estargz",
+    visibility = ["//vendor/github.com/google/go-containerregistry:__subpackages__"],
+    deps = [
+        "//vendor/github.com/containerd/stargz-snapshotter/estargz",
+        "//vendor/github.com/google/go-containerregistry/pkg/v1:pkg",
+    ],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":estargz",
+    visibility = ["//vendor/github.com/google/go-containerregistry:__subpackages__"],
+)

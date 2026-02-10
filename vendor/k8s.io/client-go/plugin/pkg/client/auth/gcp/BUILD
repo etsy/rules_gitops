@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "gcp",
+    srcs = ["gcp_stub.go"],
+    importmap = "github.com/fasterci/rules_gitops/vendor/k8s.io/client-go/plugin/pkg/client/auth/gcp",
+    importpath = "k8s.io/client-go/plugin/pkg/client/auth/gcp",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/k8s.io/client-go/rest",
+        "//vendor/k8s.io/klog/v2:klog",
+    ],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":gcp",
+    visibility = ["//visibility:public"],
+)

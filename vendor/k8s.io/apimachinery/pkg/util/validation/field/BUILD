@@ -1,0 +1,22 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "field",
+    srcs = [
+        "errors.go",
+        "path.go",
+    ],
+    importmap = "github.com/fasterci/rules_gitops/vendor/k8s.io/apimachinery/pkg/util/validation/field",
+    importpath = "k8s.io/apimachinery/pkg/util/validation/field",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/k8s.io/apimachinery/pkg/util/errors",
+        "//vendor/k8s.io/apimachinery/pkg/util/sets",
+    ],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":field",
+    visibility = ["//visibility:public"],
+)

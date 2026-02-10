@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "jlexer",
+    srcs = [
+        "bytestostr.go",
+        "error.go",
+        "lexer.go",
+    ],
+    importmap = "github.com/fasterci/rules_gitops/vendor/github.com/mailru/easyjson/jlexer",
+    importpath = "github.com/mailru/easyjson/jlexer",
+    visibility = ["//visibility:public"],
+    deps = ["//vendor/github.com/josharian/intern"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":jlexer",
+    visibility = ["//visibility:public"],
+)

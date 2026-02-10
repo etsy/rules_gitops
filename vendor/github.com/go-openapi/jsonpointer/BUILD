@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "jsonpointer",
+    srcs = ["pointer.go"],
+    importmap = "github.com/fasterci/rules_gitops/vendor/github.com/go-openapi/jsonpointer",
+    importpath = "github.com/go-openapi/jsonpointer",
+    visibility = ["//visibility:public"],
+    deps = ["//vendor/github.com/go-openapi/swag"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":jsonpointer",
+    visibility = ["//visibility:public"],
+)

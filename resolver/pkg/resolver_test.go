@@ -40,6 +40,14 @@ func TestNoError(t *testing.T) {
 		{"zk", map[string]string{
 			"zk-image": "dummy",
 		}},
+		{"container_env", map[string]string{
+			"nginx":   "docker.io/library/nginx:tag",
+			"envoy":   "docker.io/library/envoy:tag",
+			"//envoy": "docker.io/library/envoy:tag",
+		}},
+		{"external_image", map[string]string{
+			"etcd": "docker.io/library/etcd:tag",
+		}},
 	}
 	for _, testcase := range testcases {
 		t.Run(testcase.name, func(t *testing.T) {

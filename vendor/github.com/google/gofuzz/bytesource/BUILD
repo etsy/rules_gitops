@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "bytesource",
+    srcs = ["bytesource.go"],
+    importmap = "github.com/fasterci/rules_gitops/vendor/github.com/google/gofuzz/bytesource",
+    importpath = "github.com/google/gofuzz/bytesource",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":bytesource",
+    visibility = ["//visibility:public"],
+)

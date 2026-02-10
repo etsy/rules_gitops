@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "editiondefaults",
+    srcs = ["defaults.go"],
+    embedsrcs = ["editions_defaults.binpb"],
+    importmap = "github.com/fasterci/rules_gitops/vendor/google.golang.org/protobuf/internal/editiondefaults",
+    importpath = "google.golang.org/protobuf/internal/editiondefaults",
+    visibility = ["//vendor/google.golang.org/protobuf:__subpackages__"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":editiondefaults",
+    visibility = ["//vendor/google.golang.org/protobuf:__subpackages__"],
+)

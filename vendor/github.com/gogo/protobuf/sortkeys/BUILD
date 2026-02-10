@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "sortkeys",
+    srcs = ["sortkeys.go"],
+    importmap = "github.com/fasterci/rules_gitops/vendor/github.com/gogo/protobuf/sortkeys",
+    importpath = "github.com/gogo/protobuf/sortkeys",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":sortkeys",
+    visibility = ["//visibility:public"],
+)

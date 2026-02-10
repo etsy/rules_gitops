@@ -1,0 +1,28 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "credentials",
+    srcs = [
+        "credentials.go",
+        "default_store.go",
+        "default_store_darwin.go",
+        "default_store_linux.go",
+        "default_store_windows.go",
+        "file_store.go",
+        "native_store.go",
+    ],
+    importmap = "github.com/fasterci/rules_gitops/vendor/github.com/docker/cli/cli/config/credentials",
+    importpath = "github.com/docker/cli/cli/config/credentials",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/docker/cli/cli/config/types",
+        "//vendor/github.com/docker/docker-credential-helpers/client",
+        "//vendor/github.com/docker/docker-credential-helpers/credentials",
+    ],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":credentials",
+    visibility = ["//visibility:public"],
+)

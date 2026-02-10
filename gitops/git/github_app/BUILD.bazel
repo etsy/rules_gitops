@@ -1,0 +1,24 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "github_app",
+    srcs = ["github_app.go"],
+    importpath = "github.com/fasterci/rules_gitops/gitops/git/github_app",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/bradleyfalzon/ghinstallation/v2:ghinstallation",
+        "//vendor/github.com/google/go-github/v68/github",
+    ],
+)
+
+go_test(
+    name = "github_app_test",
+    srcs = ["github_app_test.go"],
+    embed = [":github_app"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":github_app",
+    visibility = ["//visibility:public"],
+)

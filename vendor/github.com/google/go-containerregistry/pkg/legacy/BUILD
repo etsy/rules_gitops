@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "legacy",
+    srcs = [
+        "config.go",
+        "doc.go",
+    ],
+    importmap = "github.com/fasterci/rules_gitops/vendor/github.com/google/go-containerregistry/pkg/legacy",
+    importpath = "github.com/google/go-containerregistry/pkg/legacy",
+    visibility = ["//visibility:public"],
+    deps = ["//vendor/github.com/google/go-containerregistry/pkg/v1:pkg"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":legacy",
+    visibility = ["//visibility:public"],
+)

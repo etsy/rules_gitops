@@ -1,0 +1,43 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "http2",
+    srcs = [
+        "ascii.go",
+        "ciphers.go",
+        "client_conn_pool.go",
+        "config.go",
+        "config_go124.go",
+        "config_pre_go124.go",
+        "databuffer.go",
+        "errors.go",
+        "flow.go",
+        "frame.go",
+        "gotrack.go",
+        "headermap.go",
+        "http2.go",
+        "pipe.go",
+        "server.go",
+        "timer.go",
+        "transport.go",
+        "write.go",
+        "writesched.go",
+        "writesched_priority.go",
+        "writesched_random.go",
+        "writesched_roundrobin.go",
+    ],
+    importmap = "github.com/fasterci/rules_gitops/vendor/golang.org/x/net/http2",
+    importpath = "golang.org/x/net/http2",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/golang.org/x/net/http/httpguts",
+        "//vendor/golang.org/x/net/http2/hpack",
+        "//vendor/golang.org/x/net/idna",
+    ],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":http2",
+    visibility = ["//visibility:public"],
+)

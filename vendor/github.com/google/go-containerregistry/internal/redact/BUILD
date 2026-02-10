@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "redact",
+    srcs = ["redact.go"],
+    importmap = "github.com/fasterci/rules_gitops/vendor/github.com/google/go-containerregistry/internal/redact",
+    importpath = "github.com/google/go-containerregistry/internal/redact",
+    visibility = ["//vendor/github.com/google/go-containerregistry:__subpackages__"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":redact",
+    visibility = ["//vendor/github.com/google/go-containerregistry:__subpackages__"],
+)

@@ -1,0 +1,25 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "tarball",
+    srcs = [
+        "doc.go",
+        "write.go",
+    ],
+    importmap = "github.com/fasterci/rules_gitops/vendor/github.com/google/go-containerregistry/pkg/legacy/tarball",
+    importpath = "github.com/google/go-containerregistry/pkg/legacy/tarball",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/google/go-containerregistry/pkg/legacy",
+        "//vendor/github.com/google/go-containerregistry/pkg/name",
+        "//vendor/github.com/google/go-containerregistry/pkg/v1:pkg",
+        "//vendor/github.com/google/go-containerregistry/pkg/v1/partial",
+        "//vendor/github.com/google/go-containerregistry/pkg/v1/tarball",
+    ],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":tarball",
+    visibility = ["//visibility:public"],
+)

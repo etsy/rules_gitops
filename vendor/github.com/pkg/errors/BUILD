@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "errors",
+    srcs = [
+        "errors.go",
+        "go113.go",
+        "stack.go",
+    ],
+    importmap = "github.com/fasterci/rules_gitops/vendor/github.com/pkg/errors",
+    importpath = "github.com/pkg/errors",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":errors",
+    visibility = ["//visibility:public"],
+)

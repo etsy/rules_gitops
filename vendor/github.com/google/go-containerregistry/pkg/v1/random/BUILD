@@ -1,0 +1,27 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "random",
+    srcs = [
+        "doc.go",
+        "image.go",
+        "index.go",
+        "options.go",
+    ],
+    importmap = "github.com/fasterci/rules_gitops/vendor/github.com/google/go-containerregistry/pkg/v1/random",
+    importpath = "github.com/google/go-containerregistry/pkg/v1/random",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/google/go-containerregistry/pkg/v1:pkg",
+        "//vendor/github.com/google/go-containerregistry/pkg/v1/empty",
+        "//vendor/github.com/google/go-containerregistry/pkg/v1/mutate",
+        "//vendor/github.com/google/go-containerregistry/pkg/v1/partial",
+        "//vendor/github.com/google/go-containerregistry/pkg/v1/types",
+    ],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":random",
+    visibility = ["//visibility:public"],
+)

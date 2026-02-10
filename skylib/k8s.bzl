@@ -24,12 +24,14 @@ def _show_impl(ctx):
     script_content = "#!/usr/bin/env bash\nset -e\n"
 
     kustomize_outputs = []
-    script_template = "{template_engine} --template={infile} --variable=NAMESPACE={namespace} --stamp_info_file={info_file}\n"
+    script_template = "{template_engine} --template={infile} {namespace_var} --stamp_info_file={info_file}\n"
+    namespace_var = "--variable=NAMESPACE=" + ctx.attr.namespace if ctx.attr.namespace else ""
+
     for dep in ctx.attr.src.files.to_list():
         kustomize_outputs.append(script_template.format(
             infile = dep.short_path,
             template_engine = ctx.executable._template_engine.short_path,
-            namespace = ctx.attr.namespace,
+            namespace_var = namespace_var,
             info_file = ctx.file._info_file.short_path,
         ))
 
@@ -50,7 +52,7 @@ show = rule(
         ),
         "namespace": attr.string(
             doc = "kubernetes namespace.",
-            mandatory = True,
+            default = "",
         ),
         "_info_file": attr.label(
             default = Label("//skylib:more_stable_status.txt"),
@@ -114,6 +116,7 @@ def k8s_deploy(
         cluster = "dev",
         user = None,
         namespace = None,
+        respect_resource_namespace = False,
         configmaps_srcs = None,
         secrets_srcs = None,
         configmaps_renaming = None,  # configmaps renaming policy. Could be None or 'hash'.
@@ -138,6 +141,7 @@ def k8s_deploy(
         objects = [],
         gitops = True,  # make sure to use gitops = False to work with individual namespace. This option will be turned False if namespace is '{BUILD_USER}'
         gitops_path = "cloud",
+        app_name = "myapp",
         deployment_branch = None,
         release_branch_prefix = "main",
         start_tag = "{{",
@@ -243,8 +247,6 @@ def k8s_deploy(
         )
     else:
         # gitops
-        if not namespace:
-            fail("namespace must be defined for gitops k8s_deploy")
         image_pushes = _image_pushes(
             name_suffix = ".push",
             images = images,
@@ -255,7 +257,8 @@ def k8s_deploy(
         )
         kustomize(
             name = name,
-            namespace = namespace,
+            namespace = namespace if namespace else "",
+            respect_resource_namespace = respect_resource_namespace,
             configmaps_srcs = configmaps_srcs,
             secrets_srcs = secrets_srcs,
             # disable_name_suffix_hash is renamed to configmaps_renaming in recent Kustomize
@@ -284,7 +287,8 @@ def k8s_deploy(
             srcs = [name],
             cluster = cluster,
             user = user,
-            namespace = namespace,
+            namespace = namespace if namespace else "",
+            respect_resource_namespace = respect_resource_namespace,
             tags = tags,
             visibility = visibility,
         )
@@ -292,10 +296,11 @@ def k8s_deploy(
             name = name + ".gitops",
             srcs = [name],
             cluster = cluster,
-            namespace = namespace,
+            namespace = namespace if namespace else "",
             gitops_path = gitops_path,
+            app_name = app_name,
             strip_prefixes = [
-                namespace + "-",
+                (namespace + "-") if namespace else "",
                 cluster + "-",
             ],
             deployment_branch = deployment_branch,
@@ -306,7 +311,7 @@ def k8s_deploy(
         show(
             name = name + ".show",
             src = name,
-            namespace = namespace,
+            namespace = namespace if namespace else "",
             tags = tags,
             visibility = visibility,
         )

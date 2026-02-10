@@ -1,0 +1,24 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "tar",
+    srcs = [
+        "common.go",
+        "format.go",
+        "reader.go",
+        "stat_actime1.go",
+        "stat_actime2.go",
+        "stat_unix.go",
+        "strconv.go",
+        "writer.go",
+    ],
+    importmap = "github.com/fasterci/rules_gitops/vendor/github.com/vbatts/tar-split/archive/tar",
+    importpath = "github.com/vbatts/tar-split/archive/tar",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":tar",
+    visibility = ["//visibility:public"],
+)

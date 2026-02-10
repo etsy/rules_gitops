@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "logs",
+    srcs = ["logs.go"],
+    importmap = "github.com/fasterci/rules_gitops/vendor/github.com/google/go-containerregistry/pkg/logs",
+    importpath = "github.com/google/go-containerregistry/pkg/logs",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":logs",
+    visibility = ["//visibility:public"],
+)

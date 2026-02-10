@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "match",
+    srcs = ["match.go"],
+    importmap = "github.com/fasterci/rules_gitops/vendor/github.com/google/go-containerregistry/pkg/v1/match",
+    importpath = "github.com/google/go-containerregistry/pkg/v1/match",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/google/go-containerregistry/pkg/v1:pkg",
+        "//vendor/github.com/opencontainers/image-spec/specs-go/v1:specs-go",
+    ],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":match",
+    visibility = ["//visibility:public"],
+)

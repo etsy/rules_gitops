@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "errorutil",
+    srcs = ["errors.go"],
+    importmap = "github.com/fasterci/rules_gitops/vendor/github.com/containerd/stargz-snapshotter/estargz/errorutil",
+    importpath = "github.com/containerd/stargz-snapshotter/estargz/errorutil",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":errorutil",
+    visibility = ["//visibility:public"],
+)

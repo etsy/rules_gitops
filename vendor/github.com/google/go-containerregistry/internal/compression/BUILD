@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "compression",
+    srcs = ["compression.go"],
+    importmap = "github.com/fasterci/rules_gitops/vendor/github.com/google/go-containerregistry/internal/compression",
+    importpath = "github.com/google/go-containerregistry/internal/compression",
+    visibility = ["//vendor/github.com/google/go-containerregistry:__subpackages__"],
+    deps = [
+        "//vendor/github.com/google/go-containerregistry/internal/gzip",
+        "//vendor/github.com/google/go-containerregistry/internal/zstd",
+        "//vendor/github.com/google/go-containerregistry/pkg/compression",
+    ],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":compression",
+    visibility = ["//vendor/github.com/google/go-containerregistry:__subpackages__"],
+)

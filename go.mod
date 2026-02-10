@@ -5,10 +5,11 @@ go 1.23.0
 toolchain go1.23.1
 
 require (
+	github.com/bradleyfalzon/ghinstallation/v2 v2.13.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-containerregistry v0.20.3
-	github.com/google/go-github/v32 v32.1.0
+	github.com/google/go-github/v68 v68.0.0
 	github.com/xanzy/go-gitlab v0.80.2
 	golang.org/x/oauth2 v0.30.0
 	golang.org/x/sync v0.14.0
@@ -31,6 +32,7 @@ require (
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang-jwt/jwt/v4 v4.5.1 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
@@ -58,7 +60,6 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/vbatts/tar-split v0.11.6 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	golang.org/x/crypto v0.28.0 // indirect
 	golang.org/x/net v0.30.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/term v0.25.0 // indirect

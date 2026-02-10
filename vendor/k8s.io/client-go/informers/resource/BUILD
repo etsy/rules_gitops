@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "resource",
+    srcs = ["interface.go"],
+    importmap = "github.com/fasterci/rules_gitops/vendor/k8s.io/client-go/informers/resource",
+    importpath = "k8s.io/client-go/informers/resource",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/k8s.io/client-go/informers/internalinterfaces",
+        "//vendor/k8s.io/client-go/informers/resource/v1alpha3",
+        "//vendor/k8s.io/client-go/informers/resource/v1beta1",
+    ],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":resource",
+    visibility = ["//visibility:public"],
+)

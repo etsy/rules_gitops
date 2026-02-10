@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nginx
+  name: nginx-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - env:
+        - name: ENVOY_IMAGE_URL
+          value: docker.io/library/envoy:tag
+        - name: BACKUP_ENVOY_IMAGE_URL
+          value: docker.io/library/envoy:tag
+        image: docker.io/library/nginx:tag
+        name: nginx
+        ports:
+        - containerPort: 80

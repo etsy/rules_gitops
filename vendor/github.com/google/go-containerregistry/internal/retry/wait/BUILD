@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "wait",
+    srcs = ["kubernetes_apimachinery_wait.go"],
+    importmap = "github.com/fasterci/rules_gitops/vendor/github.com/google/go-containerregistry/internal/retry/wait",
+    importpath = "github.com/google/go-containerregistry/internal/retry/wait",
+    visibility = ["//vendor/github.com/google/go-containerregistry:__subpackages__"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":wait",
+    visibility = ["//vendor/github.com/google/go-containerregistry:__subpackages__"],
+)

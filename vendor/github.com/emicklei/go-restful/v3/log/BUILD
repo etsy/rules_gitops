@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "log",
+    srcs = ["log.go"],
+    importmap = "github.com/fasterci/rules_gitops/vendor/github.com/emicklei/go-restful/v3/log",
+    importpath = "github.com/emicklei/go-restful/v3/log",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":log",
+    visibility = ["//visibility:public"],
+)

@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "zstd",
+    srcs = ["zstd.go"],
+    importmap = "github.com/fasterci/rules_gitops/vendor/github.com/google/go-containerregistry/internal/zstd",
+    importpath = "github.com/google/go-containerregistry/internal/zstd",
+    visibility = ["//vendor/github.com/google/go-containerregistry:__subpackages__"],
+    deps = [
+        "//vendor/github.com/google/go-containerregistry/internal/and",
+        "//vendor/github.com/klauspost/compress/zstd",
+    ],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":zstd",
+    visibility = ["//vendor/github.com/google/go-containerregistry:__subpackages__"],
+)

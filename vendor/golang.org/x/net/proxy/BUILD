@@ -1,0 +1,22 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "proxy",
+    srcs = [
+        "dial.go",
+        "direct.go",
+        "per_host.go",
+        "proxy.go",
+        "socks5.go",
+    ],
+    importmap = "github.com/fasterci/rules_gitops/vendor/golang.org/x/net/proxy",
+    importpath = "golang.org/x/net/proxy",
+    visibility = ["//visibility:public"],
+    deps = ["//vendor/golang.org/x/net/internal/socks"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":proxy",
+    visibility = ["//visibility:public"],
+)

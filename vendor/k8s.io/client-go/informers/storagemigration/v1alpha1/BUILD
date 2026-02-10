@@ -1,0 +1,28 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "v1alpha1",
+    srcs = [
+        "interface.go",
+        "storageversionmigration.go",
+    ],
+    importmap = "github.com/fasterci/rules_gitops/vendor/k8s.io/client-go/informers/storagemigration/v1alpha1",
+    importpath = "k8s.io/client-go/informers/storagemigration/v1alpha1",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/k8s.io/api/storagemigration/v1alpha1",
+        "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:meta",
+        "//vendor/k8s.io/apimachinery/pkg/runtime",
+        "//vendor/k8s.io/apimachinery/pkg/watch",
+        "//vendor/k8s.io/client-go/informers/internalinterfaces",
+        "//vendor/k8s.io/client-go/kubernetes",
+        "//vendor/k8s.io/client-go/listers/storagemigration/v1alpha1",
+        "//vendor/k8s.io/client-go/tools/cache",
+    ],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":v1alpha1",
+    visibility = ["//visibility:public"],
+)

@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "atom",
+    srcs = [
+        "atom.go",
+        "table.go",
+    ],
+    importmap = "github.com/fasterci/rules_gitops/vendor/golang.org/x/net/html/atom",
+    importpath = "golang.org/x/net/html/atom",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":atom",
+    visibility = ["//visibility:public"],
+)

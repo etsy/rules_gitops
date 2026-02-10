@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "clock",
+    srcs = ["clock.go"],
+    importmap = "github.com/fasterci/rules_gitops/vendor/k8s.io/utils/clock",
+    importpath = "k8s.io/utils/clock",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":clock",
+    visibility = ["//visibility:public"],
+)

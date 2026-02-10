@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "schema",
+    srcs = [
+        "doc.go",
+        "elements.go",
+        "equals.go",
+        "schemaschema.go",
+    ],
+    importmap = "github.com/fasterci/rules_gitops/vendor/sigs.k8s.io/structured-merge-diff/v4/schema",
+    importpath = "sigs.k8s.io/structured-merge-diff/v4/schema",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":schema",
+    visibility = ["//visibility:public"],
+)

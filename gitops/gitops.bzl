@@ -43,12 +43,25 @@ def __create_gitops_prs_impl(ctx):
         params += "--github_repo_owner {} ".format(ctx.attr.github_repo_owner)
     if ctx.attr.github_repo:
         params += "--github_repo {} ".format(ctx.attr.github_repo)
+    # Etsy Custom params
+    if ctx.attr.github_app_id:
+        params += "--github_app_id {} ".format(ctx.attr.github_app_id)
+    if ctx.attr.github_installation_id:
+        params += "--github_installation_id {} ".format(ctx.attr.github_installation_id)
+    if ctx.attr.github_app_repo_owner:
+        params += "--github_app_repo_owner {} ".format(ctx.attr.github_app_repo_owner)
+    if ctx.attr.github_app_repo:
+        params += "--github_app_repo {} ".format(ctx.attr.github_app_repo)
+    if ctx.attr.private_key:
+        params += "--private_key {} ".format(ctx.attr.private_key)
 
+    # git_commit & branch_name params are set in _tpl since it's read from env variables
     ctx.actions.expand_template(
         template = ctx.file._tpl,
         substitutions = {
             "%{params}": params,
             "%{prer}": ctx.executable._prer.short_path,
+            "%{branch_name_prefix}": ctx.attr.branch_name_prefix,
         },
         output = ctx.outputs.executable,
     )
@@ -120,6 +133,9 @@ create_gitops_prs = rule(
         "github_repo": attr.string(
             doc = "github repo to create PRs in.",
         ),
+        "bazel_flag": attr.string(
+            doc = "bazel flag to pass during gitops phase",
+        ),
         "_tpl": attr.label(
             default = Label("@rules_gitops//gitops:create_gitops_prs.tpl.sh"),
             allow_single_file = True,
@@ -129,6 +145,26 @@ create_gitops_prs = rule(
             allow_single_file = True,
             cfg = "exec",
             executable = True,
+        ),
+        # Etsy Custom params
+        "github_app_id": attr.string(
+            doc = "GitHub App Id",
+        ),
+        "github_installation_id": attr.string(
+            doc = "GitHub App Installation Id",
+        ),
+        "github_app_repo_owner": attr.string(
+            doc = "the owner user/organization to use for github api requests",
+        ),
+        "github_app_repo": attr.string(
+            doc = "the repository to use for pull requests via github app credentials",
+        ),
+        "private_key": attr.string(
+            doc = "Private Key",
+        ),
+        "branch_name_prefix": attr.string(
+            doc = "Prefix for branch name used in commit messages",
+            default = "sciences",
         ),
     },
     executable = True,

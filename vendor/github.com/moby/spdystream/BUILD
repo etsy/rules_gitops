@@ -1,0 +1,22 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "spdystream",
+    srcs = [
+        "connection.go",
+        "handlers.go",
+        "priority.go",
+        "stream.go",
+        "utils.go",
+    ],
+    importmap = "github.com/fasterci/rules_gitops/vendor/github.com/moby/spdystream",
+    importpath = "github.com/moby/spdystream",
+    visibility = ["//visibility:public"],
+    deps = ["//vendor/github.com/moby/spdystream/spdy"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":spdystream",
+    visibility = ["//visibility:public"],
+)

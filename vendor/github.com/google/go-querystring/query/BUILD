@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "query",
+    srcs = ["encode.go"],
+    importmap = "github.com/fasterci/rules_gitops/vendor/github.com/google/go-querystring/query",
+    importpath = "github.com/google/go-querystring/query",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":query",
+    visibility = ["//visibility:public"],
+)

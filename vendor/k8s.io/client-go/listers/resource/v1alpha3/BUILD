@@ -1,0 +1,27 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "v1alpha3",
+    srcs = [
+        "deviceclass.go",
+        "expansion_generated.go",
+        "resourceclaim.go",
+        "resourceclaimtemplate.go",
+        "resourceslice.go",
+    ],
+    importmap = "github.com/fasterci/rules_gitops/vendor/k8s.io/client-go/listers/resource/v1alpha3",
+    importpath = "k8s.io/client-go/listers/resource/v1alpha3",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/k8s.io/api/resource/v1alpha3",
+        "//vendor/k8s.io/apimachinery/pkg/labels",
+        "//vendor/k8s.io/client-go/listers",
+        "//vendor/k8s.io/client-go/tools/cache",
+    ],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":v1alpha3",
+    visibility = ["//visibility:public"],
+)

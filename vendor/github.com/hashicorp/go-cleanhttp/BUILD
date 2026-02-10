@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go-cleanhttp",
+    srcs = [
+        "cleanhttp.go",
+        "doc.go",
+        "handlers.go",
+    ],
+    importmap = "github.com/fasterci/rules_gitops/vendor/github.com/hashicorp/go-cleanhttp",
+    importpath = "github.com/hashicorp/go-cleanhttp",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":go-cleanhttp",
+    visibility = ["//visibility:public"],
+)
