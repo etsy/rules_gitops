@@ -8,7 +8,6 @@ def __create_gitops_prs_impl(ctx):
             src_by_train[gai.deployment_branch] = []
         src_by_train[gai.deployment_branch].append(src.files_to_run.executable)
 
-    # print("src_by_train:", src_by_train)
     trans_img_pushes = depset(transitive = [obj[GitopsArtifactsInfo].image_pushes for obj in ctx.attr.srcs if obj.files_to_run.executable]).to_list()
     params = ""
     for deployment_branch in src_by_train.keys():
@@ -43,7 +42,6 @@ def __create_gitops_prs_impl(ctx):
         params += "--github_repo_owner {} ".format(ctx.attr.github_repo_owner)
     if ctx.attr.github_repo:
         params += "--github_repo {} ".format(ctx.attr.github_repo)
-
     ctx.actions.expand_template(
         template = ctx.file._tpl,
         substitutions = {
