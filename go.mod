@@ -12,8 +12,7 @@ require (
 	github.com/google/go-github/v68 v68.0.0
 	github.com/xanzy/go-gitlab v0.80.2
 	golang.org/x/oauth2 v0.30.0
-	golang.org/x/sync v0.14.0
-	google.golang.org/protobuf v1.36.6
+	google.golang.org/protobuf v1.36.10
 	k8s.io/api v0.32.5
 	k8s.io/apimachinery v0.32.5
 	k8s.io/client-go v0.32.5
@@ -61,6 +60,7 @@ require (
 	github.com/vbatts/tar-split v0.11.6 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	golang.org/x/net v0.30.0 // indirect
+	golang.org/x/sync v0.15.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/term v0.25.0 // indirect
 	golang.org/x/text v0.19.0 // indirect
