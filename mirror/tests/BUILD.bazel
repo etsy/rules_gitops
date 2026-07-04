@@ -1,3 +1,4 @@
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
 load("@aspect_bazel_lib//lib:testing.bzl", "assert_contains")
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@rules_gitops//gitops:defs.bzl", "k8s_deploy", "k8s_test_setup")

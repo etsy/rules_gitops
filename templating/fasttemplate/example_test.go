@@ -6,7 +6,7 @@ import (
 	"net/url"
 )
 
-func ExampleTemplate() {
+func Example_template() {
 	template := "http://{{host}}/?foo={{bar}}{{bar}}&q={{query}}&baz={{baz}}"
 
 	// Substitution map.
@@ -29,7 +29,7 @@ func ExampleTemplate() {
 	// http://google.com/?foo=foobarfoobar&q=query%3Dworld&baz={{baz}}
 }
 
-func ExampleTemplateWithSpaces() {
+func Example_templateWithSpaces() {
 	template := "http://{{ host }}/?foo={{ bar }}{{ bar }}&q={{ query }}&baz={{ baz }}"
 
 	// Substitution map.
