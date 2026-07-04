@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/google/go-github/v32/github"
+	"github.com/google/go-github/v88/github"
 	"golang.org/x/oauth2"
 )
 
@@ -38,17 +38,17 @@ func CreatePR(from, to, title, body string) error {
 	tc := oauth2.NewClient(ctx, ts)
 
 	var gh *github.Client
+	var err error
 	if *githubEnterpriseHost != "" {
 		baseUrl := "https://" + *githubEnterpriseHost + "/api/v3/"
 		uploadUrl := "https://" + *githubEnterpriseHost + "/api/uploads/"
-		var err error
-		gh, err = github.NewEnterpriseClient(baseUrl, uploadUrl, tc)
-		if err != nil {
-			log.Println("Error in creating github client", err)
-			return nil
-		}
+		gh, err = github.NewClient(github.WithHTTPClient(tc), github.WithEnterpriseURLs(baseUrl, uploadUrl))
 	} else {
-		gh = github.NewClient(tc)
+		gh, err = github.NewClient(github.WithHTTPClient(tc))
+	}
+	if err != nil {
+		log.Println("Error in creating github client", err)
+		return nil
 	}
 
 	pr := &github.NewPullRequest{

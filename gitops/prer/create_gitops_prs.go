@@ -28,6 +28,7 @@ import (
 	"github.com/fasterci/rules_gitops/gitops/git"
 	"github.com/fasterci/rules_gitops/gitops/git/bitbucket"
 	"github.com/fasterci/rules_gitops/gitops/git/github"
+	"github.com/fasterci/rules_gitops/gitops/git/github_app"
 	"github.com/fasterci/rules_gitops/gitops/git/gitlab"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
@@ -68,7 +69,7 @@ var (
 	gitCommit              = flag.String("git_commit", "unknown", "Git commit to use in commit message")
 	deployBranchPrefix     = flag.String("deploy_branch_prefix", "deploy/", "prefix to add to all deployment branch names")
 	deploymentBranchSuffix = flag.String("deployment_branch_suffix", "", "suffix to add to all deployment branch names")
-	gitHost                = flag.String("git_server", "bitbucket", "the git server api to use. 'bitbucket', 'github' or 'gitlab'")
+	gitHost                = flag.String("git_server", "bitbucket", "the git server api to use. 'bitbucket', 'github', 'github_app' or 'gitlab'")
 	gitopsKind             SliceFlags
 	gitopsRuleName         SliceFlags
 	gitopsRuleAttr         SliceFlags
@@ -123,6 +124,8 @@ func main() {
 	switch *gitHost {
 	case "github":
 		gitServer = git.ServerFunc(github.CreatePR)
+	case "github_app":
+		gitServer = git.ServerFunc(github_app.CreatePR)
 	case "gitlab":
 		gitServer = git.ServerFunc(gitlab.CreatePR)
 	case "bitbucket":
@@ -181,6 +184,7 @@ func main() {
 
 	var updatedGitopsTargets []string
 	var updatedGitopsBranches []string
+	var modifiedFiles []string
 
 	for train, targets := range releaseTrains {
 		log.Println("train", train)
@@ -206,6 +210,16 @@ func main() {
 			log.Println("train", train, "target", target)
 			bin := bazel.TargetToExecutable(target)
 			exec.Mustex("", bin, "--nopush", "--deployment_root", gitopsdir)
+		}
+		if *gitHost == "github_app" {
+			// The files modified by the gitops targets are committed through the
+			// GitHub API at the end of the run, so collect them before the local
+			// commit makes the working tree clean.
+			files, err := workdir.GetModifiedFiles()
+			if err != nil {
+				log.Fatalf("unable to get modified files: %v", err)
+			}
+			modifiedFiles = append(modifiedFiles, files...)
 		}
 		if workdir.Commit(fmt.Sprintf("GitOps for release branch %s from %s commit %s\n%s", *releaseBranch, *branchName, *gitCommit, commitmsg.Generate(targets)), *gitopsPath) {
 			log.Println("branch", branch, "has changes, push is required")
@@ -296,6 +310,14 @@ func main() {
 	if *dryRun {
 		log.Println("dry-run: updated gitops branches: ", updatedGitopsBranches)
 		log.Println("dry-run: skipping push")
+	} else if *gitHost == "github_app" {
+		// Create the deployment commit and PR through the GitHub API so that
+		// the commit is signed with the GitHub App credentials. All changes
+		// are committed to a single branch (-branch_name) instead of pushing
+		// the local deployment branches.
+		title, body := githubAppPRText()
+		github_app.CreateCommit(*prInto, *branchName, gitopsdir, modifiedFiles, title, body)
+		return
 	} else {
 		workdir.Push(updatedGitopsBranches)
 	}
@@ -320,4 +342,36 @@ func main() {
 			log.Fatal("unable to create PR: ", err)
 		}
 	}
+}
+
+// githubAppPRText computes the title and body of the deployment PR created in
+// github_app mode. Explicit -gitops_pr_title/-gitops_pr_body flags win; when
+// running under Buildkite the values are derived from the pipeline metadata.
+func githubAppPRText() (title, body string) {
+	title = *prTitle
+	body = *prBody
+	if slug := os.Getenv("BUILDKITE_PIPELINE_SLUG"); slug != "" {
+		sha := os.Getenv("BUILDKITE_COMMIT")
+		shortSha := sha
+		if len(shortSha) > 7 {
+			shortSha = shortSha[:7]
+		}
+		repo := os.Getenv("BUILDKITE_REPO")
+		repo = strings.Replace(repo, ":", "/", 1)
+		repo = strings.Replace(repo, "git@", "https://", 1)
+		repo = strings.Replace(repo, ".git", "", 1)
+		if title == "" {
+			title = fmt.Sprintf("Gitops Deploy: %s - %s", slug, shortSha)
+		}
+		if body == "" {
+			body = fmt.Sprintf("Automated PR for [%s](%s/commit/%s) via [Buildkite Pipeline](%s)", slug, repo, sha, os.Getenv("BUILDKITE_BUILD_URL"))
+		}
+	}
+	if title == "" {
+		title = fmt.Sprintf("GitOps deployment %s", *branchName)
+	}
+	if body == "" {
+		body = *branchName
+	}
+	return title, body
 }
